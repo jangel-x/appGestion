@@ -114,14 +114,14 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
         }
 
         .nav-btn {
-          background: #f0fdf4; border: 1.5px solid #bbf7d0;
+          background: var(--accent-light); border: 1.5px solid var(--accent-border);
           border-radius: 8px; padding: 6px 10px;
-          cursor: pointer; color: #16a34a;
+          cursor: pointer; color: var(--accent);
           display: flex; align-items: center;
           font-size: 0.85rem; font-weight: 500;
           transition: all 0.15s; font-family: 'DM Sans', sans-serif;
         }
-        .nav-btn:hover { background: #dcfce7; border-color: #4ade80; }
+        .nav-btn:hover { background: var(--accent-light2); border-color: #4ade80; }
         .today-btn { padding: 6px 14px; }
 
         .cal-weekdays {
@@ -130,7 +130,7 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
         }
         .weekday {
           text-align: center; font-size: 0.78rem;
-          font-weight: 600; color: #6b7280;
+          font-weight: 600; color: var(--text-muted);
           padding: 6px 0; text-transform: uppercase; letter-spacing: 0.5px;
         }
 
@@ -146,17 +146,17 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
           border: 1.5px solid transparent;
           position: relative;
         }
-        .cal-day:hover { background: #f0fdf4; border-color: #bbf7d0; }
+        .cal-day:hover { background: var(--bg-hover); border-color: var(--accent-border); }
         .cal-day:hover .add-day-btn { opacity: 1; }
         .cal-day.other-month { opacity: 0.35; }
-        .cal-day.today { background: #f0fdf4; border-color: #4ade80; }
+        .cal-day.today { background: var(--accent-light); border-color: var(--accent); }
 
         .day-header {
           display: flex; align-items: center;
           justify-content: space-between; margin-bottom: 4px;
         }
         .day-num {
-          font-size: 0.85rem; font-weight: 600; color: #374151;
+          font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
         }
         .today .day-num {
           background: #16a34a; color: white;
@@ -166,9 +166,9 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
         }
 
         .add-day-btn {
-          opacity: 0; background: #dcfce7; border: none;
+          opacity: 0; background: var(--accent-light2); border: none;
           border-radius: 4px; padding: 2px; cursor: pointer;
-          color: #16a34a; display: flex; transition: opacity 0.15s;
+          color: var(--accent); display: flex; transition: opacity 0.15s;
         }
 
         .day-apps { display: flex; flex-direction: column; gap: 2px; }
@@ -182,11 +182,11 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
         .app-emoji { font-size: 0.65rem; flex-shrink: 0; }
         .app-title {
           white-space: nowrap; overflow: hidden;
-          text-overflow: ellipsis; color: #1f2937;
+          text-overflow: ellipsis; color: var(--text-primary);
           font-weight: 500;
         }
         .more-apps {
-          font-size: 0.7rem; color: #6b7280;
+          font-size: 0.7rem; color: var(--text-muted);
           padding: 1px 6px;
         }
       `}</style>

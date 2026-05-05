@@ -82,7 +82,7 @@ export default function DayView({ date, appointments, onClose, onAdd, onAppointm
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
         .dayview-card {
-          background: white; border-radius: 20px;
+          background: var(--bg-card); border-radius: 20px;
           width: 100%; max-width: 480px;
           box-shadow: 0 20px 60px rgba(0,0,0,0.15);
           max-height: 85vh; display: flex; flex-direction: column;
@@ -100,11 +100,11 @@ export default function DayView({ date, appointments, onClose, onAdd, onAppointm
         }
         .dv-weekday {
           font-size: 0.8rem; text-transform: capitalize;
-          color: #6b7280; font-weight: 500; margin-bottom: 2px;
+          color: var(--text-muted); font-weight: 500; margin-bottom: 2px;
         }
         .dv-date {
           font-family: 'DM Serif Display', serif;
-          font-size: 1.3rem; color: #14532d; text-transform: capitalize;
+          font-size: 1.3rem; color: var(--text-primary); text-transform: capitalize;
         }
 
         .dv-add-btn {
@@ -119,7 +119,7 @@ export default function DayView({ date, appointments, onClose, onAdd, onAppointm
         .dv-close-btn {
           background: #f9fafb; border: 1.5px solid #e5e7eb;
           border-radius: 10px; padding: 8px; cursor: pointer;
-          color: #6b7280; display: flex; transition: all 0.15s;
+          color: var(--text-muted); display: flex; transition: all 0.15s;
         }
         .dv-close-btn:hover { background: #fef2f2; color: #ef4444; border-color: #fecaca; }
 
@@ -147,7 +147,7 @@ export default function DayView({ date, appointments, onClose, onAdd, onAppointm
         .dv-item:hover { opacity: 0.85; }
         .dv-item-top { display: flex; align-items: center; gap: 8px; }
         .dv-emoji { font-size: 1rem; }
-        .dv-title { font-weight: 600; color: #1f2937; font-size: 0.95rem; flex: 1; }
+        .dv-title { font-weight: 600; color: var(--text-primary); font-size: 0.95rem; flex: 1; }
         .dv-private {
           display: flex; align-items: center; gap: 3px;
           font-size: 0.72rem; color: #9ca3af; background: #f3f4f6;
@@ -155,11 +155,11 @@ export default function DayView({ date, appointments, onClose, onAdd, onAppointm
         }
         .dv-item-meta {
           display: flex; align-items: center; gap: 12px;
-          font-size: 0.78rem; color: #6b7280;
+          font-size: 0.78rem; color: var(--text-muted);
         }
         .dv-item-meta span { display: flex; align-items: center; gap: 4px; }
         .dv-notes {
-          font-size: 0.8rem; color: #6b7280;
+          font-size: 0.8rem; color: var(--text-muted);
           background: rgba(255,255,255,0.6); border-radius: 6px;
           padding: 6px 8px; line-height: 1.4;
         }

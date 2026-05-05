@@ -1,22 +1,28 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useGroups, useAppointments } from "../hooks/useFirestore";
 import Calendar from "../components/Calendar";
 import GroupPanel from "../components/GroupPanel";
 import AppointmentModal from "../components/AppointmentModal";
 import DayView from "../components/DayView";
-import { LogOut, Filter, Calendar as CalIcon, Plus } from "lucide-react";
+import SettingsModal from "../components/SettingsModal";
+import MobileNav from "../components/MobileNav";
+import { LogOut, Filter, Calendar as CalIcon, Plus, Settings } from "lucide-react";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const { theme } = useTheme();
   const { groups, createGroup, joinGroup, leaveGroup } = useGroups();
 
   const [activeGroup, setActiveGroup] = useState(null);
   const [filter, setFilter] = useState("all");
   const [modalState, setModalState] = useState(null);
-  const [dayView, setDayView] = useState(null); // date string
+  const [dayView, setDayView] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [mobileTab, setMobileTab] = useState("calendar");
 
   const { appointments, loading, addAppointment, updateAppointment, deleteAppointment } =
     useAppointments(activeGroup?.id, filter);
@@ -28,7 +34,6 @@ export default function Dashboard() {
     return map;
   }, [activeGroup]);
 
-  // Check if current user can edit an appointment
   const canEdit = (appointment) => {
     if (!appointment || !user) return false;
     if (appointment.createdBy === user.uid) return true;
@@ -41,17 +46,13 @@ export default function Dashboard() {
     const now = startOfDay(new Date());
     return appointments
       .filter((a) => { try { return !isAfter(now, parseISO(a.date)); } catch { return false; } })
-      .slice(0, 6);
+      .slice(0, 8);
   }, [appointments]);
 
-  // When clicking a day: if it has appointments, show DayView, else open new appointment modal
   const handleDayClick = (date) => {
     const dayApps = appointments.filter((a) => a.date === date);
-    if (dayApps.length > 0) {
-      setDayView(date);
-    } else {
-      setModalState({ date });
-    }
+    if (dayApps.length > 0) setDayView(date);
+    else setModalState({ date });
   };
 
   const handleAppointmentClick = (appointment) => {
@@ -87,15 +88,8 @@ export default function Dashboard() {
     return base;
   }, [activeGroup, user]);
 
-  const CATEGORY_EMOJI = { cita: "✂️", reunion: "🤝", personal: "👤", otro: "📌" };
+  const handleSelectGroup = (g) => { setActiveGroup(g); setFilter("all"); setMobileTab("calendar"); };
 
-  // Sync activeGroup with latest group data (for leaders updates)
-  const handleSelectGroup = (g) => {
-    setActiveGroup(g);
-    setFilter("all");
-  };
-
-  // Keep activeGroup in sync when groups update
   useMemo(() => {
     if (activeGroup) {
       const updated = groups.find((g) => g.id === activeGroup.id);
@@ -103,8 +97,45 @@ export default function Dashboard() {
     }
   }, [groups]);
 
+  const CATEGORY_EMOJI = { cita: "✂️", reunion: "🤝", personal: "👤", otro: "📌" };
+
+  const renderUpcoming = () => (
+    <div className="upcoming-section">
+      {!activeGroup ? (
+        <div className="mobile-empty">
+          <div>📅</div>
+          <p>Selecciona un grupo primero</p>
+          <button className="mobile-go-btn" onClick={() => setMobileTab("groups")}>Ir a Grupos →</button>
+        </div>
+      ) : upcoming.length === 0 ? (
+        <div className="mobile-empty">
+          <div>📭</div>
+          <p>No hay próximas citas</p>
+          <button className="mobile-go-btn" onClick={() => setModalState({ date: format(new Date(), "yyyy-MM-dd") })}>+ Nueva cita</button>
+        </div>
+      ) : upcoming.map((a) => (
+        <div key={a.id} className="upcoming-card"
+          style={{ borderLeft: `4px solid ${memberColors[a.createdBy] || "#4ade80"}` }}
+          onClick={() => handleAppointmentClick(a)}>
+          <div className="uc-top">
+            <span>{CATEGORY_EMOJI[a.category] || "📌"}</span>
+            <span className="uc-title">{a.title}</span>
+            <span className="uc-who" style={{ color: memberColors[a.createdBy] || "#4ade80" }}>
+              {a.createdBy === user?.uid ? "Yo" : a.createdByName?.split(" ")[0] || "Compañero"}
+            </span>
+          </div>
+          <div className="uc-meta">
+            {a.clientName && <span>👤 {a.clientName}</span>}
+            <span>📅 {a.date && (() => { try { return format(parseISO(a.date), "d MMM", { locale: es }); } catch { return a.date; } })()}</span>
+            {a.time && <span>🕐 {a.time}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="dashboard">
+    <div className={`dashboard theme-${theme}`}>
       <header className="topbar">
         <div className="topbar-left">
           <div className="logo">
@@ -118,18 +149,18 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="topbar-center">
-          {activeGroup && (
-            <div className="group-badge"><CalIcon size={14} /><span>{activeGroup.name}</span></div>
-          )}
+          {activeGroup && <div className="group-badge"><CalIcon size={14} /><span>{activeGroup.name}</span></div>}
         </div>
         <div className="topbar-right">
           {user?.photo && <img src={user.photo} alt={user.name} className="user-avatar" title={user.name} />}
           <span className="user-name">{user?.name?.split(" ")[0]}</span>
-          <button className="logout-btn" onClick={logout} title="Cerrar sesión"><LogOut size={16} /></button>
+          <button className="icon-action-btn" onClick={() => setShowSettings(true)} title="Ajustes"><Settings size={17} /></button>
+          <button className="icon-action-btn logout" onClick={logout} title="Cerrar sesión"><LogOut size={17} /></button>
         </div>
       </header>
 
       <div className="main-layout">
+        {/* Desktop sidebar */}
         <aside className="sidebar">
           <GroupPanel
             groups={groups}
@@ -139,17 +170,13 @@ export default function Dashboard() {
             onJoinGroup={joinGroup}
             onLeaveGroup={leaveGroup}
           />
-
           {activeGroup && upcoming.length > 0 && (
             <div className="upcoming">
               <div className="upcoming-title">Próximas citas</div>
-              {upcoming.map((a) => (
-                <div
-                  key={a.id}
-                  className="upcoming-item"
+              {upcoming.slice(0, 6).map((a) => (
+                <div key={a.id} className="upcoming-item"
                   style={{ borderLeft: `3px solid ${memberColors[a.createdBy] || "#4ade80"}` }}
-                  onClick={() => handleAppointmentClick(a)}
-                >
+                  onClick={() => handleAppointmentClick(a)}>
                   <span className="up-emoji">{CATEGORY_EMOJI[a.category] || "📌"}</span>
                   <div className="up-info">
                     <div className="up-title">{a.title}</div>
@@ -170,162 +197,224 @@ export default function Dashboard() {
           )}
         </aside>
 
+        {/* Main content */}
         <main className="content">
-          {!activeGroup ? (
-            <div className="empty-state">
-              <div className="empty-icon">📅</div>
-              <h2>Selecciona un grupo</h2>
-              <p>Elige un grupo en el panel izquierdo o crea uno nuevo para empezar a añadir citas.</p>
-            </div>
-          ) : (
-            <>
-              <div className="filter-bar">
-                <div className="filter-label"><Filter size={14} /> Filtrar:</div>
-                <div className="filter-chips">
-                  {filterOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      className={`filter-chip ${filter === opt.value ? "active" : ""}`}
-                      onClick={() => setFilter(opt.value)}
-                      style={filter === opt.value && memberColors[opt.value]
-                        ? { background: memberColors[opt.value] + "22", borderColor: memberColors[opt.value] }
-                        : {}}
-                    >
-                      {opt.value !== "all" && opt.value !== "mine" && (
-                        <span className="chip-dot" style={{ background: memberColors[opt.value] || "#4ade80" }} />
-                      )}
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <button className="new-btn" onClick={() => setModalState({ date: format(new Date(), "yyyy-MM-dd") })}>
-                  + Nueva cita
-                </button>
+          {/* Mobile tabs content */}
+          <div className="mobile-only">
+            {mobileTab === "groups" && (
+              <div className="mobile-panel">
+                <GroupPanel
+                  groups={groups}
+                  activeGroup={activeGroup}
+                  onSelectGroup={handleSelectGroup}
+                  onCreateGroup={createGroup}
+                  onJoinGroup={joinGroup}
+                  onLeaveGroup={leaveGroup}
+                  isMobile
+                />
               </div>
+            )}
+            {mobileTab === "upcoming" && renderUpcoming()}
+            {mobileTab === "settings" && (
+              <div className="mobile-panel">
+                <SettingsModal inline onClose={() => setMobileTab("calendar")} />
+              </div>
+            )}
+          </div>
 
-              {loading ? (
-                <div className="loading">Cargando citas...</div>
-              ) : (
-                <div className="cal-wrapper">
-                  <Calendar
-                    appointments={appointments}
-                    onDayClick={handleDayClick}
-                    onAppointmentClick={handleAppointmentClick}
-                    memberColors={memberColors}
-                    currentUserId={user?.uid}
-                  />
+          {/* Calendar — shown on desktop always, on mobile only when calendar tab active */}
+          <div className={`cal-area ${mobileTab !== "calendar" ? "mobile-hidden" : ""}`}>
+            {!activeGroup ? (
+              <div className="empty-state">
+                <div className="empty-icon">📅</div>
+                <h2>Selecciona un grupo</h2>
+                <p>Elige un grupo para ver y añadir citas.</p>
+                <button className="empty-cta" onClick={() => setMobileTab("groups")}>Ver mis grupos →</button>
+              </div>
+            ) : (
+              <>
+                <div className="filter-bar">
+                  <div className="filter-label"><Filter size={14} /> Filtrar:</div>
+                  <div className="filter-chips">
+                    {filterOptions.map((opt) => (
+                      <button key={opt.value}
+                        className={`filter-chip ${filter === opt.value ? "active" : ""}`}
+                        onClick={() => setFilter(opt.value)}
+                        style={filter === opt.value && memberColors[opt.value]
+                          ? { background: memberColors[opt.value] + "22", borderColor: memberColors[opt.value] } : {}}>
+                        {opt.value !== "all" && opt.value !== "mine" && (
+                          <span className="chip-dot" style={{ background: memberColors[opt.value] || "#4ade80" }} />
+                        )}
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button className="new-btn desktop-only" onClick={() => setModalState({ date: format(new Date(), "yyyy-MM-dd") })}>
+                    + Nueva cita
+                  </button>
                 </div>
-              )}
-            </>
-          )}
+                {loading ? (
+                  <div className="loading">Cargando citas...</div>
+                ) : (
+                  <div className="cal-wrapper">
+                    <Calendar appointments={appointments} onDayClick={handleDayClick}
+                      onAppointmentClick={handleAppointmentClick} memberColors={memberColors} currentUserId={user?.uid} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </main>
       </div>
 
-      {/* FAB for mobile */}
-      {activeGroup && (
+      {/* FAB */}
+      {activeGroup && mobileTab === "calendar" && (
         <button className="fab" onClick={() => setModalState({ date: format(new Date(), "yyyy-MM-dd") })}>
           <Plus size={24} />
         </button>
       )}
 
-      {/* Day view modal */}
-      {dayView && (
-        <DayView
-          date={dayView}
-          appointments={appointments}
-          onClose={() => setDayView(null)}
-          onAdd={(date) => setModalState({ date })}
-          onAppointmentClick={handleAppointmentClick}
-          memberColors={memberColors}
-          currentUserId={user?.uid}
-        />
-      )}
+      {/* Mobile nav */}
+      <MobileNav activeTab={mobileTab} onTabChange={setMobileTab} />
 
-      {/* Appointment modal */}
-      {modalState && (
-        <AppointmentModal
-          date={modalState.date}
-          appointment={modalState.appointment}
-          readOnly={modalState.readOnly}
-          onSave={handleSave}
-          onClose={() => setModalState(null)}
-          onDelete={handleDelete}
-        />
+      {/* Modals */}
+      {dayView && (
+        <DayView date={dayView} appointments={appointments} onClose={() => setDayView(null)}
+          onAdd={(date) => setModalState({ date })} onAppointmentClick={handleAppointmentClick}
+          memberColors={memberColors} currentUserId={user?.uid} />
       )}
+      {modalState && (
+        <AppointmentModal date={modalState.date} appointment={modalState.appointment}
+          readOnly={modalState.readOnly} onSave={handleSave} onClose={() => setModalState(null)} onDelete={handleDelete} />
+      )}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        .dashboard { display: flex; flex-direction: column; height: 100vh; background: #f9fafb; font-family: 'DM Sans', sans-serif; overflow: hidden; }
 
-        .topbar { display: flex; align-items: center; padding: 0 24px; height: 58px; background: white; border-bottom: 1.5px solid #dcfce7; flex-shrink: 0; gap: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
-        .topbar-left, .topbar-right { display: flex; align-items: center; gap: 12px; min-width: 180px; }
+        /* ── THEME VARIABLES ── */
+        .dashboard {
+          --accent: #16a34a;
+          --accent-dark: #15803d;
+          --accent-light: #f0fdf4;
+          --accent-light2: #bbf7d0;
+          --accent-border: #bbf7d0;
+          --bg: #f9fafb;
+          --bg-card: #ffffff;
+          --bg-hover: #f0fdf4;
+          --bg-input: #ffffff;
+          --border: #dcfce7;
+          --text-primary: #1f2937;
+          --text-secondary: #374151;
+          --text-muted: #6b7280;
+        }
+        .dashboard.theme-dark {
+          --accent: #4ade80;
+          --accent-dark: #22c55e;
+          --accent-light: #14532d22;
+          --accent-light2: #14532d44;
+          --accent-border: #166534;
+          --bg: #0f1117;
+          --bg-card: #1a1f2e;
+          --bg-hover: #1f2937;
+          --bg-input: #111827;
+          --border: #1f2937;
+          --text-primary: #f9fafb;
+          --text-secondary: #d1d5db;
+          --text-muted: #6b7280;
+        }
+
+        .dashboard {
+          display: flex; flex-direction: column; height: 100vh;
+          background: var(--bg); font-family: 'DM Sans', sans-serif; overflow: hidden;
+        }
+
+        .topbar {
+          display: flex; align-items: center; padding: 0 24px; height: 58px;
+          background: var(--bg-card); border-bottom: 1.5px solid var(--border);
+          flex-shrink: 0; gap: 16px; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+          z-index: 50;
+        }
+        .topbar-left, .topbar-right { display: flex; align-items: center; gap: 10px; min-width: 160px; }
         .topbar-right { justify-content: flex-end; }
         .topbar-center { flex: 1; display: flex; justify-content: center; }
         .logo { display: flex; align-items: center; gap: 10px; }
-        .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: #14532d; }
-        .group-badge { display: flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1.5px solid #bbf7d0; padding: 5px 14px; border-radius: 100px; font-size: 0.88rem; font-weight: 500; color: #166534; }
+        .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--text-primary); }
+        .group-badge { display: flex; align-items: center; gap: 6px; background: var(--accent-light); border: 1.5px solid var(--accent-border); padding: 5px 14px; border-radius: 100px; font-size: 0.88rem; font-weight: 500; color: var(--accent); }
         .user-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
-        .user-name { font-size: 0.88rem; font-weight: 500; color: #374151; }
-        .logout-btn { background: none; border: none; cursor: pointer; color: #9ca3af; padding: 6px; border-radius: 8px; display: flex; transition: all 0.15s; }
-        .logout-btn:hover { color: #ef4444; background: #fef2f2; }
+        .user-name { font-size: 0.88rem; font-weight: 500; color: var(--text-secondary); }
+        .icon-action-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 8px; display: flex; transition: all 0.15s; }
+        .icon-action-btn:hover { color: var(--accent); background: var(--accent-light); }
+        .icon-action-btn.logout:hover { color: #ef4444; background: #fef2f2; }
 
         .main-layout { display: flex; flex: 1; overflow: hidden; }
 
-        .sidebar { width: 260px; flex-shrink: 0; background: white; border-right: 1.5px solid #dcfce7; padding: 20px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        .sidebar { width: 260px; flex-shrink: 0; background: var(--bg-card); border-right: 1.5px solid var(--border); padding: 20px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 
-        .upcoming { border-top: 1.5px solid #f0fdf4; padding-top: 16px; }
-        .upcoming-title { font-size: 0.78rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-        .upcoming-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.15s; margin-bottom: 4px; background: #fafafa; }
-        .upcoming-item:hover { background: #f0fdf4; }
+        .upcoming { border-top: 1.5px solid var(--border); padding-top: 16px; }
+        .upcoming-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .upcoming-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.15s; margin-bottom: 4px; background: var(--bg-hover); }
+        .upcoming-item:hover { filter: brightness(0.97); }
         .up-emoji { font-size: 1rem; margin-top: 1px; }
         .up-info { flex: 1; min-width: 0; }
-        .up-title { font-size: 0.83rem; font-weight: 600; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .up-title { font-size: 0.83rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .up-meta { display: flex; flex-direction: column; gap: 1px; }
-        .up-client { font-size: 0.75rem; color: #4b5563; }
-        .up-date { font-size: 0.75rem; color: #9ca3af; }
+        .up-client { font-size: 0.75rem; color: var(--text-secondary); }
+        .up-date { font-size: 0.75rem; color: var(--text-muted); }
         .up-who { font-size: 0.72rem; font-weight: 600; margin-top: 2px; }
 
-        .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+        .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+
+        .cal-area { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
         .cal-wrapper { flex: 1; padding: 20px 24px; overflow-y: auto; }
 
-        .filter-bar { display: flex; align-items: center; gap: 10px; padding: 12px 24px; background: white; border-bottom: 1.5px solid #dcfce7; flex-shrink: 0; flex-wrap: wrap; }
-        .filter-label { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: #6b7280; font-weight: 500; white-space: nowrap; }
+        .filter-bar { display: flex; align-items: center; gap: 10px; padding: 12px 24px; background: var(--bg-card); border-bottom: 1.5px solid var(--border); flex-shrink: 0; flex-wrap: wrap; }
+        .filter-label { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
         .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-        .filter-chip { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 100px; border: 1.5px solid #e5e7eb; background: #f9fafb; font-size: 0.82rem; cursor: pointer; color: #4b5563; transition: all 0.15s; font-family: 'DM Sans', sans-serif; font-weight: 500; }
-        .filter-chip:hover { border-color: #4ade80; background: #f0fdf4; }
-        .filter-chip.active { border-color: #4ade80; background: #dcfce7; color: #166534; }
+        .filter-chip { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--bg-hover); font-size: 0.82rem; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; font-family: 'DM Sans', sans-serif; font-weight: 500; }
+        .filter-chip:hover { border-color: var(--accent); }
+        .filter-chip.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
         .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
-        .new-btn { background: #16a34a; color: white; border: none; border-radius: 100px; padding: 7px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: 'DM Sans', sans-serif; margin-left: auto; }
-        .new-btn:hover { background: #15803d; transform: translateY(-1px); }
+        .new-btn { background: var(--accent); color: white; border: none; border-radius: 100px; padding: 7px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: 'DM Sans', sans-serif; margin-left: auto; }
+        .new-btn:hover { background: var(--accent-dark); transform: translateY(-1px); }
 
-        .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #9ca3af; padding: 40px; }
+        .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); padding: 40px; }
         .empty-icon { font-size: 3rem; }
-        .empty-state h2 { font-family: 'DM Serif Display', serif; color: #6b7280; font-size: 1.4rem; }
+        .empty-state h2 { font-family: 'DM Serif Display', serif; color: var(--text-secondary); font-size: 1.4rem; }
         .empty-state p { text-align: center; max-width: 300px; line-height: 1.6; font-size: 0.9rem; }
-        .loading { flex: 1; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.9rem; }
+        .empty-cta { background: var(--accent-light); color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 10px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
 
-        /* FAB - floating action button for mobile */
-        .fab {
-          display: none;
-          position: fixed; bottom: 24px; right: 24px;
-          width: 56px; height: 56px; border-radius: 50%;
-          background: #16a34a; color: white;
-          border: none; cursor: pointer;
-          box-shadow: 0 4px 20px rgba(22,163,74,0.4);
-          align-items: center; justify-content: center;
-          transition: all 0.2s; z-index: 100;
-        }
-        .fab:hover { background: #15803d; transform: scale(1.05); }
+        .loading { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.9rem; }
+
+        .fab { display: none; position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: white; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(22,163,74,0.4); align-items: center; justify-content: center; transition: all 0.2s; z-index: 100; }
+        .fab:hover { background: var(--accent-dark); transform: scale(1.05); }
+
+        /* Mobile-specific */
+        .mobile-only { display: none; }
+        .mobile-panel { padding: 16px; overflow-y: auto; flex: 1; }
+        .upcoming-section { padding: 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; padding-bottom: 80px; }
+        .upcoming-card { background: var(--bg-card); border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .upcoming-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .uc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .uc-title { font-weight: 600; color: var(--text-primary); flex: 1; font-size: 0.95rem; }
+        .uc-who { font-size: 0.78rem; font-weight: 600; }
+        .uc-meta { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap; }
+        .mobile-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 20px; color: var(--text-muted); text-align: center; flex: 1; }
+        .mobile-empty div { font-size: 2.5rem; }
+        .mobile-go-btn { background: var(--accent-light); color: var(--accent); border: 1.5px solid var(--accent-border); border-radius: 10px; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
 
         @media (max-width: 768px) {
           .sidebar { display: none; }
-          .new-btn { display: none; }
+          .desktop-only { display: none; }
+          .mobile-only { display: flex; flex-direction: column; }
+          .mobile-hidden { display: none !important; }
           .fab { display: flex; }
           .topbar { padding: 0 16px; }
-          .topbar-left .logo-text { display: none; }
-          .topbar-right .user-name { display: none; }
+          .logo-text { font-size: 1rem; }
+          .user-name { display: none; }
           .filter-bar { padding: 10px 16px; }
-          .cal-wrapper { padding: 12px; }
+          .cal-wrapper { padding: 10px 12px; padding-bottom: 80px; }
+          .cal-area { display: flex; flex-direction: column; }
         }
       `}</style>
     </div>

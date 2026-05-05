@@ -165,7 +165,7 @@ export default function AppointmentModal({ date, appointment, readOnly, onSave, 
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
         .modal-card {
-          background: #fff;
+          background: var(--bg-card);
           border-radius: 20px;
           width: 100%; max-width: 560px;
           box-shadow: 0 20px 60px rgba(0,0,0,0.15);
@@ -183,7 +183,7 @@ export default function AppointmentModal({ date, appointment, readOnly, onSave, 
         }
         .modal-header h2 {
           font-family: 'DM Serif Display', serif;
-          font-size: 1.4rem; color: #14532d; margin: 0;
+          font-size: 1.4rem; color: var(--text-primary); margin: 0;
         }
         .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
         .modal-footer {
@@ -198,42 +198,42 @@ export default function AppointmentModal({ date, appointment, readOnly, onSave, 
         .field-row .field { flex: 1; }
 
         .input {
-          border: 1.5px solid #d1fae5;
+          border: 1.5px solid var(--accent-border);
           border-radius: 10px;
           padding: 10px 12px;
           font-size: 0.92rem;
           font-family: 'DM Sans', sans-serif;
-          color: #1f2937;
+          color: var(--text-primary);
           outline: none;
           transition: border-color 0.2s;
           width: 100%; box-sizing: border-box;
           resize: vertical;
         }
-        .input:focus { border-color: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.15); }
+        .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(74,222,128,0.15); }
 
         .category-grid { display: flex; flex-wrap: wrap; gap: 8px; }
         .cat-btn {
           display: flex; align-items: center; gap: 6px;
           padding: 7px 14px; border-radius: 8px;
-          border: 1.5px solid #d1fae5; background: #f9fafb;
+          border: 1.5px solid var(--accent-border); background: #f9fafb;
           font-size: 0.85rem; color: #4b5563;
           cursor: pointer; transition: all 0.15s;
           font-family: 'DM Sans', sans-serif;
         }
-        .cat-btn:hover { border-color: #4ade80; background: #f0fdf4; }
-        .cat-btn.active { border-color: #4ade80; background: #dcfce7; color: #166534; font-weight: 600; }
+        .cat-btn:hover { border-color: var(--accent); background: #f0fdf4; }
+        .cat-btn.active { border-color: var(--accent); background: #dcfce7; color: #166534; font-weight: 600; }
 
         .visibility-toggle { display: flex; gap: 8px; }
         .vis-btn {
           flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
           padding: 10px; border-radius: 10px;
-          border: 1.5px solid #d1fae5; background: #f9fafb;
+          border: 1.5px solid var(--accent-border); background: #f9fafb;
           font-size: 0.85rem; color: #4b5563;
           cursor: pointer; transition: all 0.15s;
           font-family: 'DM Sans', sans-serif;
         }
-        .vis-btn:hover { border-color: #4ade80; }
-        .vis-btn.active { border-color: #4ade80; background: #dcfce7; color: #166534; font-weight: 600; }
+        .vis-btn:hover { border-color: var(--accent); }
+        .vis-btn.active { border-color: var(--accent); background: #dcfce7; color: #166534; font-weight: 600; }
 
         .icon-btn {
           background: none; border: none; cursor: pointer;
@@ -252,7 +252,7 @@ export default function AppointmentModal({ date, appointment, readOnly, onSave, 
         .save-btn:hover { background: #15803d; transform: translateY(-1px); }
 
         .cancel-btn {
-          background: #f9fafb; color: #6b7280;
+          background: #f9fafb; color: var(--text-muted);
           border: 1.5px solid #e5e7eb; border-radius: 10px;
           padding: 10px 16px; font-size: 0.9rem;
           cursor: pointer; transition: all 0.15s;

@@ -1,25 +1,11 @@
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html, body, #root {
-  height: 100%;
-  width: 100%;
-}
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: #f0fdf4;
-  color: #1f2937;
-  -webkit-font-smoothing: antialiased;
-}
-
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; width: 100%; }
+body { font-family: 'DM Sans', sans-serif; background: #f0fdf4; color: #1f2937; -webkit-font-smoothing: antialiased; }
+[data-theme="dark"] body { background: #0f1117; color: #f9fafb; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #bbf7d0; border-radius: 100px; }
 ::-webkit-scrollbar-thumb:hover { background: #86efac; }
-
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #166534; }
 button { font-family: inherit; }
 input, textarea { font-family: inherit; }
