@@ -1,10 +1,57 @@
-import { useState, useRef, useEffect } from "react";
-import { Users, Plus, LogIn, Copy, Check, LogOut, Crown, Shield, Trash2, MoreVertical } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { es } from "date-fns/locale";
+import { Users, Plus, LogIn, Copy, Check, LogOut, Crown, Shield, Trash2, MoreVertical, AlertTriangle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { doc, updateDoc, arrayRemove } from "firebase/firestore";
 import { db } from "../firebase/config";
 
-export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreateGroup, onJoinGroup, onLeaveGroup, isMobile }) {
+function GroupStats({ activeGroup, appointments }) {
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+
+  const thisMonthApps = useMemo(() =>
+    appointments.filter((a) => {
+      try {
+        return isWithinInterval(parseISO(a.date), { start: monthStart, end: monthEnd });
+      } catch { return false; }
+    }), [appointments]);
+
+  const total = appointments.length;
+  const thisMonth = thisMonthApps.length;
+  const monthName = format(now, "MMMM", { locale: es });
+
+  if (total === 0 && thisMonth === 0) return null;
+
+  return (
+    <div className="group-stats">
+      <div className="gs-row">
+        <div className="gs-card">
+          <div className="gs-num">{thisMonth}</div>
+          <div className="gs-label">En {monthName}</div>
+        </div>
+        <div className="gs-card">
+          <div className="gs-num">{total}</div>
+          <div className="gs-label">Total</div>
+        </div>
+        <div className="gs-card">
+          <div className="gs-num">{activeGroup?.members?.length || 0}</div>
+          <div className="gs-label">Miembros</div>
+        </div>
+      </div>
+      <style>{`
+        .group-stats { margin-bottom: 12px; }
+        .gs-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .gs-card { background: var(--bg-hover); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; }
+        .gs-num { font-family: 'DM Serif Display', serif; font-size: 1.25rem; color: var(--accent); line-height: 1; }
+        .gs-label { font-size: 0.68rem; color: var(--text-muted); margin-top: 3px; font-weight: 500; text-transform: capitalize; }
+      `}</style>
+    </div>
+  );
+}
+
+export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreateGroup, onJoinGroup, onLeaveGroup, onDeleteGroup, appointments = [], isMobile }) {
   const { user } = useAuth();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -12,7 +59,9 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
   const [joinId, setJoinId] = useState("");
   const [copied, setCopied] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
-  const [memberMenu, setMemberMenu] = useState(null); // uid of member with open menu
+  const [memberMenu, setMemberMenu] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // groupId a eliminar
+  const [deleting, setDeleting] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -45,6 +94,14 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const PALETTE = ["#4ade80","#60a5fa","#f472b6","#fb923c","#a78bfa","#34d399","#facc15","#f87171","#38bdf8","#e879f9"];
+
+  const changeMyColor = async (color) => {
+    if (!activeGroup) return;
+    const ref = doc(db, "groups", activeGroup.id);
+    await updateDoc(ref, { [`memberDetails.${user.uid}.color`]: color });
+  };
+
   const toggleLeader = async (uid) => {
     if (!activeGroup) return;
     const ref = doc(db, "groups", activeGroup.id);
@@ -67,6 +124,19 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
       memberDetails,
     });
     setMemberMenu(null);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await onDeleteGroup(confirmDelete);
+      setConfirmDelete(null);
+    } catch (e) {
+      alert(e.message || "Error al eliminar el grupo");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const isOwner = activeGroup?.ownerId === user?.uid;
@@ -107,6 +177,27 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
         </div>
       )}
 
+      {/* Confirmación eliminar grupo */}
+      {confirmDelete && (
+        <div className="gp-confirm-overlay">
+          <div className="gp-confirm-card">
+            <div className="gp-confirm-icon"><AlertTriangle size={28} color="#ef4444" /></div>
+            <div className="gp-confirm-title">¿Eliminar grupo?</div>
+            <p className="gp-confirm-desc">
+              Se borrarán todas las citas del grupo y no podrás recuperarlas. Esta acción es permanente.
+            </p>
+            <div className="gp-confirm-btns">
+              <button className="gp-confirm-cancel" onClick={() => setConfirmDelete(null)} disabled={deleting}>
+                Cancelar
+              </button>
+              <button className="gp-confirm-delete" onClick={handleDeleteGroup} disabled={deleting}>
+                {deleting ? "Eliminando..." : "Sí, eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="gp-list">
         {groups.length === 0 && (
           <div className="gp-empty">
@@ -133,8 +224,14 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
                 <button className="gp-icon-btn" title="Copiar ID para invitar" onClick={() => copyId(g.id)}>
                   {copied === g.id ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
                 </button>
-                {!iAmOwner && (
-                  <button className="gp-icon-btn leave" title="Salir" onClick={() => onLeaveGroup(g.id)}>
+                {iAmOwner ? (
+                  <button className="gp-icon-btn delete" title="Eliminar grupo"
+                    onClick={() => setConfirmDelete(g.id)}>
+                    <Trash2 size={13} />
+                  </button>
+                ) : (
+                  <button className="gp-icon-btn leave" title="Salir del grupo"
+                    onClick={() => onLeaveGroup(g.id)}>
                     <LogOut size={13} />
                   </button>
                 )}
@@ -143,6 +240,11 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
           );
         })}
       </div>
+
+      {/* Stats */}
+      {activeGroup && (
+        <GroupStats activeGroup={activeGroup} appointments={appointments} />
+      )}
 
       {/* Members */}
       {activeGroup && activeGroup.memberDetails && (
@@ -200,7 +302,7 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
       )}
 
       <style>{`
-        .group-panel { display: flex; flex-direction: column; gap: 0; font-family: 'DM Sans', sans-serif; height: 100%; }
+        .group-panel { display: flex; flex-direction: column; gap: 0; font-family: 'DM Sans', sans-serif; height: 100%; position: relative; }
         .gp-header { display: flex; align-items: center; justify-content: space-between; padding: 0 0 12px; }
         .gp-title { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         .gp-actions { display: flex; gap: 4px; }
@@ -215,6 +317,29 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
         .gp-save { flex: 1; background: var(--accent); color: white; border: none; border-radius: 8px; padding: 7px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
         .gp-cancel { flex: 1; background: var(--bg-hover); color: var(--text-muted); border: 1.5px solid var(--border); border-radius: 8px; padding: 7px; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans', sans-serif; }
 
+        /* Confirmación eliminar */
+        .gp-confirm-overlay {
+          position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 50; border-radius: 12px; backdrop-filter: blur(3px);
+          animation: gp-fade 0.15s ease;
+        }
+        @keyframes gp-fade { from{opacity:0} to{opacity:1} }
+        .gp-confirm-card {
+          background: var(--bg-card); border-radius: 16px; padding: 24px 20px;
+          width: 90%; max-width: 280px; display: flex; flex-direction: column;
+          align-items: center; gap: 12px; text-align: center;
+          border: 1.5px solid var(--border);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .gp-confirm-icon { background: #fef2f2; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
+        .gp-confirm-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--text-primary); }
+        .gp-confirm-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+        .gp-confirm-btns { display: flex; gap: 8px; width: 100%; }
+        .gp-confirm-cancel { flex: 1; background: var(--bg-hover); color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 10px; padding: 9px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+        .gp-confirm-delete { flex: 1; background: #ef4444; color: white; border: none; border-radius: 10px; padding: 9px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+        .gp-confirm-delete:disabled, .gp-confirm-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
+
         .gp-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
         .gp-empty { text-align: center; padding: 24px 16px; color: var(--text-muted); font-size: 0.82rem; line-height: 1.8; }
         .gp-empty-icon { font-size: 2rem; margin-bottom: 4px; }
@@ -227,10 +352,11 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
         .gp-item-name { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .gp-item-meta { font-size: 0.75rem; color: var(--text-muted); }
         .gp-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
-        .gp-item:hover .gp-item-actions { opacity: 1; }
+        .gp-item:hover .gp-item-actions, .gp-item.active .gp-item-actions { opacity: 1; }
         .gp-icon-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 6px; display: flex; transition: all 0.15s; }
         .gp-icon-btn:hover { color: var(--accent); background: var(--accent-light); }
-        .gp-icon-btn.leave:hover { color: #ef4444; background: #fef2f2; }
+        .gp-icon-btn.leave:hover { color: #f59e0b; background: #fef9c3; }
+        .gp-icon-btn.delete:hover { color: #ef4444; background: #fef2f2; }
 
         .gp-members { border-top: 1.5px solid var(--border); padding-top: 12px; }
         .gp-members-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; padding: 0; display: flex; justify-content: space-between; width: 100%; }
@@ -251,13 +377,30 @@ export default function GroupPanel({ groups, activeGroup, onSelectGroup, onCreat
           background: var(--bg-card); border: 1.5px solid var(--border);
           border-radius: 10px; padding: 6px; z-index: 100;
           box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 160px;
-          animation: fadeIn 0.1s ease;
+          animation: gp-fade 0.1s ease;
         }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
         .member-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: none; border-radius: 7px; background: none; cursor: pointer; font-size: 0.85rem; color: var(--text-primary); font-family: 'DM Sans', sans-serif; transition: all 0.12s; text-align: left; }
         .member-menu-item:hover { background: var(--bg-hover); }
         .member-menu-item.danger { color: #ef4444; }
         .member-menu-item.danger:hover { background: #fef2f2; }
+
+        .color-picker-wrap { position: relative; flex-shrink: 0; }
+        .color-dot { cursor: pointer; transition: transform 0.15s; }
+        .color-dot:hover { transform: scale(1.4); }
+        .color-palette {
+          position: absolute; left: 0; top: 100%; margin-top: 6px;
+          background: var(--bg-card); border: 1.5px solid var(--border);
+          border-radius: 12px; padding: 8px; z-index: 100;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+          display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+          animation: gp-fade 0.1s ease; min-width: 130px;
+        }
+        .color-swatch {
+          width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent;
+          cursor: pointer; transition: transform 0.12s;
+        }
+        .color-swatch:hover { transform: scale(1.2); }
+        .color-swatch.selected { border-color: var(--text-primary); transform: scale(1.15); }
       `}</style>
     </div>
   );

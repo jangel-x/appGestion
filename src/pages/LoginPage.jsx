@@ -20,7 +20,7 @@ export default function LoginPage() {
             <circle cx="34" cy="30" r="4" fill="#86efac"/>
           </svg>
         </div>
-        <h1 className="login-title">Agenda Equipo</h1>
+        <h1 className="login-title">Naiana</h1>
         <p className="login-subtitle">
           Organiza tus citas y compártelas<br />con tu equipo en tiempo real
         </p>
