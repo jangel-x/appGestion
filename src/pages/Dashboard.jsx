@@ -97,19 +97,19 @@ export default function Dashboard() {
     }
   }, [groups]);
 
-  const CATEGORY_EMOJI = { cita: "✂️", reunion: "🤝", personal: "👤", otro: "📌" };
+  
 
   const renderUpcoming = () => (
     <div className="upcoming-section">
       {!activeGroup ? (
         <div className="mobile-empty">
-          <div>📅</div>
+          
           <p>Selecciona un grupo primero</p>
           <button className="mobile-go-btn" onClick={() => setMobileTab("groups")}>Ir a Grupos →</button>
         </div>
       ) : upcoming.length === 0 ? (
         <div className="mobile-empty">
-          <div>📭</div>
+          
           <p>No hay próximas citas</p>
           <button className="mobile-go-btn" onClick={() => setModalState({ date: format(new Date(), "yyyy-MM-dd") })}>+ Nueva cita</button>
         </div>
@@ -118,7 +118,7 @@ export default function Dashboard() {
           style={{ borderLeft: `4px solid ${memberColors[a.createdBy] || "#4ade80"}` }}
           onClick={() => handleAppointmentClick(a)}>
           <div className="uc-top">
-            <span>{CATEGORY_EMOJI[a.category] || "📌"}</span>
+            <span>{{cita:"·",reunion:"·",personal:"·",otro:"·"}[a.category] || "·"}</span>
             <span className="uc-title">{a.title}</span>
             <span className="uc-who" style={{ color: memberColors[a.createdBy] || "#4ade80" }}>
               {a.createdBy === user?.uid ? "Yo" : a.createdByName?.split(" ")[0] || "Compañero"}
@@ -177,7 +177,7 @@ export default function Dashboard() {
                 <div key={a.id} className="upcoming-item"
                   style={{ borderLeft: `3px solid ${memberColors[a.createdBy] || "#4ade80"}` }}
                   onClick={() => handleAppointmentClick(a)}>
-                  <span className="up-emoji">{CATEGORY_EMOJI[a.category] || "📌"}</span>
+                  <span className="up-emoji">{{cita:"·",reunion:"·",personal:"·",otro:"·"}[a.category] || "·"}</span>
                   <div className="up-info">
                     <div className="up-title">{a.title}</div>
                     <div className="up-meta">
@@ -226,10 +226,9 @@ export default function Dashboard() {
           <div className={`cal-area ${mobileTab !== "calendar" ? "mobile-hidden" : ""}`}>
             {!activeGroup ? (
               <div className="empty-state">
-                <div className="empty-icon">📅</div>
+                
                 <h2>Selecciona un grupo</h2>
                 <p>Elige un grupo para ver y añadir citas.</p>
-                <button className="empty-cta" onClick={() => setMobileTab("groups")}>Ver mis grupos →</button>
               </div>
             ) : (
               <>
@@ -307,6 +306,7 @@ export default function Dashboard() {
           --text-primary: #1f2937;
           --text-secondary: #374151;
           --text-muted: #6b7280;
+          --icon-filter: invert(1);
         }
         .dashboard.theme-dark {
           --accent: #4ade80;
@@ -322,6 +322,7 @@ export default function Dashboard() {
           --text-primary: #f9fafb;
           --text-secondary: #d1d5db;
           --text-muted: #6b7280;
+          --icon-filter: invert(1);
         }
 
         .dashboard {
@@ -353,9 +354,10 @@ export default function Dashboard() {
 
         .upcoming { border-top: 1.5px solid var(--border); padding-top: 16px; }
         .upcoming-title { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-        .upcoming-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.15s; margin-bottom: 4px; background: var(--bg-hover); }
+        .upcoming-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px; border-radius: 8px; cursor: pointer; transition: background 0.15s; margin-bottom: 4px; background: var(--bg-hover); }
         .upcoming-item:hover { filter: brightness(0.97); }
-        .up-emoji { font-size: 1rem; margin-top: 1px; }
+        .up-cat-dot { font-size: 1rem; flex-shrink: 0; width: 20px; text-align: center; }
+        .uc-emoji { font-size: 1.2rem; flex-shrink: 0; }
         .up-info { flex: 1; min-width: 0; }
         .up-title { font-size: 0.83rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .up-meta { display: flex; flex-direction: column; gap: 1px; }

@@ -5,8 +5,6 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval,
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Lock } from "lucide-react";
 
-const CATEGORY_EMOJI = { cita: "✂️", reunion: "🤝", personal: "👤", otro: "📌" };
-
 export default function Calendar({ appointments, onDayClick, onAppointmentClick, memberColors, currentUserId }) {
   const [current, setCurrent] = useState(new Date());
 
@@ -25,7 +23,6 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
 
   return (
     <div className="calendar">
-      {/* Header */}
       <div className="cal-header">
         <button className="nav-btn" onClick={() => setCurrent(subMonths(current, 1))}>
           <ChevronLeft size={18} />
@@ -41,14 +38,12 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
         </button>
       </div>
 
-      {/* Week days */}
       <div className="cal-weekdays">
         {weekDays.map((d) => (
           <div key={d} className="weekday">{d}</div>
         ))}
       </div>
 
-      {/* Days grid */}
       <div className="cal-grid">
         {days.map((day) => {
           const apps = getAppsForDay(day);
@@ -62,13 +57,11 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
               onClick={() => onDayClick(format(day, "yyyy-MM-dd"))}
             >
               <div className="day-header">
-                <span className="day-num">{format(day, "d")}</span>
+                <span className={`day-num ${today ? "today-num" : ""}`}>{format(day, "d")}</span>
                 {inMonth && (
-                  <button
-                    className="add-day-btn"
-                    onClick={(e) => { e.stopPropagation(); onDayClick(format(day, "yyyy-MM-dd")); }}
-                  >
-                    <Plus size={12} />
+                  <button className="add-day-btn"
+                    onClick={(e) => { e.stopPropagation(); onDayClick(format(day, "yyyy-MM-dd")); }}>
+                    <Plus size={11} />
                   </button>
                 )}
               </div>
@@ -79,15 +72,12 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
                   const isPrivate = app.visibility === "private";
                   const isOwn = app.createdBy === currentUserId;
                   return (
-                    <div
-                      key={app.id}
-                      className="app-chip"
+                    <div key={app.id} className="app-chip"
                       style={{ backgroundColor: color + "22", borderLeft: `3px solid ${color}` }}
-                      onClick={(e) => { e.stopPropagation(); onAppointmentClick(app); }}
-                    >
-                      <span className="app-emoji">{CATEGORY_EMOJI[app.category] || "📌"}</span>
+                      onClick={(e) => { e.stopPropagation(); onAppointmentClick(app); }}>
+                      <span className="app-emoji">{{"cita":"✂️","reunion":"🤝","personal":"👤","otro":"📌"}[app.category] || "📌"}</span>
                       <span className="app-title">{app.title}</span>
-                      {isPrivate && isOwn && <Lock size={10} style={{ marginLeft: "auto", opacity: 0.6 }} />}
+                      {isPrivate && isOwn && <Lock size={9} style={{ marginLeft: "auto", opacity: 0.5, flexShrink: 0 }} />}
                     </div>
                   );
                 })}
@@ -101,68 +91,50 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
       </div>
 
       <style>{`
-        .calendar { display: flex; flex-direction: column; height: 100%; font-family: 'DM Sans', sans-serif; }
+        .calendar { display: flex; flex-direction: column; width: 100%; font-family: 'DM Sans', sans-serif; }
 
-        .cal-header {
-          display: flex; align-items: center; gap: 12px;
-          margin-bottom: 16px;
-        }
+        .cal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
         .cal-title {
           font-family: 'DM Serif Display', serif;
-          font-size: 1.5rem; color: #14532d;
+          font-size: 1.3rem; color: var(--text-primary);
           margin: 0; text-transform: capitalize; flex: 1;
         }
-
         .nav-btn {
           background: var(--accent-light); border: 1.5px solid var(--accent-border);
-          border-radius: 8px; padding: 6px 10px;
-          cursor: pointer; color: var(--accent);
-          display: flex; align-items: center;
-          font-size: 0.85rem; font-weight: 500;
+          border-radius: 8px; padding: 6px 10px; cursor: pointer; color: var(--accent);
+          display: flex; align-items: center; font-size: 0.85rem; font-weight: 500;
           transition: all 0.15s; font-family: 'DM Sans', sans-serif;
         }
-        .nav-btn:hover { background: var(--accent-light2); border-color: #4ade80; }
+        .nav-btn:hover { background: var(--accent-light2); }
         .today-btn { padding: 6px 14px; }
 
-        .cal-weekdays {
-          display: grid; grid-template-columns: repeat(7, 1fr);
-          margin-bottom: 4px;
-        }
+        .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
         .weekday {
-          text-align: center; font-size: 0.78rem;
-          font-weight: 600; color: var(--text-muted);
-          padding: 6px 0; text-transform: uppercase; letter-spacing: 0.5px;
+          text-align: center; font-size: 0.72rem; font-weight: 600;
+          color: var(--text-muted); padding: 4px 0;
+          text-transform: uppercase; letter-spacing: 0.5px;
         }
 
-        .cal-grid {
-          display: grid; grid-template-columns: repeat(7, 1fr);
-          gap: 2px; flex: 1;
-        }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 
         .cal-day {
           min-height: 100px; padding: 6px;
-          border-radius: 10px; cursor: pointer;
+          border-radius: 8px; cursor: pointer;
           transition: background 0.15s;
           border: 1.5px solid transparent;
-          position: relative;
         }
         .cal-day:hover { background: var(--bg-hover); border-color: var(--accent-border); }
         .cal-day:hover .add-day-btn { opacity: 1; }
-        .cal-day.other-month { opacity: 0.35; }
+        .cal-day.other-month { opacity: 0.3; }
         .cal-day.today { background: var(--accent-light); border-color: var(--accent); }
 
-        .day-header {
-          display: flex; align-items: center;
-          justify-content: space-between; margin-bottom: 4px;
-        }
-        .day-num {
-          font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
-        }
-        .today .day-num {
-          background: #16a34a; color: white;
-          border-radius: 50%; width: 22px; height: 22px;
+        .day-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+        .day-num { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+        .today-num {
+          background: var(--accent); color: white;
+          border-radius: 50%; width: 20px; height: 20px;
           display: flex; align-items: center; justify-content: center;
-          font-size: 0.78rem;
+          font-size: 0.74rem;
         }
 
         .add-day-btn {
@@ -174,20 +146,26 @@ export default function Calendar({ appointments, onDayClick, onAppointmentClick,
         .day-apps { display: flex; flex-direction: column; gap: 2px; }
         .app-chip {
           display: flex; align-items: center; gap: 4px;
-          padding: 2px 6px; border-radius: 4px;
-          font-size: 0.72rem; cursor: pointer;
+          padding: 2px 5px; border-radius: 3px;
+          font-size: 0.68rem; cursor: pointer;
           transition: opacity 0.15s; overflow: hidden;
         }
-        .app-chip:hover { opacity: 0.8; }
-        .app-emoji { font-size: 0.65rem; flex-shrink: 0; }
+        .app-chip:hover { opacity: 0.75; }
+        .app-emoji { font-size: 0.7rem; flex-shrink: 0; }
         .app-title {
-          white-space: nowrap; overflow: hidden;
-          text-overflow: ellipsis; color: var(--text-primary);
-          font-weight: 500;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          color: var(--text-primary); font-weight: 500;
         }
-        .more-apps {
-          font-size: 0.7rem; color: var(--text-muted);
-          padding: 1px 6px;
+        .more-apps { font-size: 0.67rem; color: var(--text-muted); padding: 1px 5px; cursor: pointer; }
+
+        @media (max-width: 768px) {
+          .cal-title { font-size: 1.1rem; }
+          .cal-day { min-height: 60px; padding: 3px; }
+          .day-num { font-size: 0.75rem; }
+          .today-num { width: 18px; height: 18px; font-size: 0.68rem; }
+          .app-chip { font-size: 0.62rem; padding: 1px 4px; }
+          .weekday { font-size: 0.62rem; }
+          .add-day-btn { display: none; }
         }
       `}</style>
     </div>
